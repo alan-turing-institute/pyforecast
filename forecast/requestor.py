@@ -2,9 +2,10 @@ from typing import Dict, Optional
 from timeit import default_timer as timer
 
 import requests
-import requests_cache
 
-requests_cache.install_cache(cache_name='forecast_cache', backend='sqlite', expire_after=180)
+# sqlite requests_cache doesn't play nicely with azure web-apps
+# import requests_cache
+# requests_cache.install_cache(cache_name='forecast_cache', backend='sqlite', expire_after=180)
 
 
 class Requestor:
@@ -29,6 +30,6 @@ class Requestor:
         print("Enpoint: {0} | Time: {1} | Cache: {2}".format(endpoint, end - start, r.from_cache, ))
         return r.json()
 
-    @staticmethod
-    def clear_cache():
-        requests_cache.clear()
+    #@staticmethod
+    #def clear_cache():
+    #    requests_cache.clear()
