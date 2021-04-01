@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List
+from datetime import date, timedelta, datetime
 
 from forecast import Client, Project, Person, Assignment, Milestone, Role, UserConnection, Placeholder, Requestor
 
@@ -37,13 +38,18 @@ class Api:
         return Person.from_dict(data['person'])
 
     def get_assignments(self, start_date=None, end_date=None, state='active',
-                        project_id=None, person_id=None, placeholder_id=None) -> List[Assignment]:
-        params = {'state': state}
+                        project_id=None, person_id=None, placeholder_id=None,
+                        max_days_per_request=180) -> List[Assignment]:
 
-        if start_date:
-            params['start_date'] = start_date
-        if end_date:
-            params['end_date'] = end_date
+        # default to using 2 year period around today's date if date not given
+        if start_date is None:
+            start_date = date.today() - timedelta(days=365)
+        if end_date is None:
+            end_date = start_date + timedelta(days=365 * 2)
+        if start_date > end_date:
+            raise ValueError("end_date must be after start_date")
+
+        params = {'state': state}
         if project_id:
             params['project_id'] = project_id
         if person_id:
@@ -51,9 +57,22 @@ class Api:
         if placeholder_id:
             params['placeholder_id'] = placeholder_id
 
-        data = self._requestor.get("assignments", params=params)
+        data = []
+        request_end = start_date - timedelta(days=1)
+        while request_end < end_date:
+            request_start = request_end + timedelta(days=1)
+            request_end = request_start + timedelta(days=max_days_per_request)
+            if request_end > end_date:
+                request_end = end_date
+            print(f"Requesting assignments from {request_start} - {request_end}")
+            params['start_date'] = request_start
+            params['end_date'] = request_end
+            data += self._requestor.get("assignments", params=params)['assignments']
 
-        return [Assignment.from_dict(assignment) for assignment in data['assignments']]
+        # remove any duplicate assignments
+        data = [dict(t) for t in {tuple(d.items()) for d in data}]
+
+        return [Assignment.from_dict(assignment) for assignment in data]
 
     def get_assignment(self, assignment_id: int) -> Assignment:
         data = self._requestor.get("assignments/{}".format(assignment_id))

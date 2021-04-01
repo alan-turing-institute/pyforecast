@@ -25,7 +25,9 @@ class Requestor:
 
     def get(self, endpoint: str, params: Optional[Dict] = None) -> Dict:
         start = timer()
-        r = requests.get("{}/{}".format(self._base_url, endpoint), headers=self._headers)
+        r = requests.get(
+            "{}/{}".format(self._base_url, endpoint), headers=self._headers, params=params
+        )
         end = timer()
         # print("Enpoint: {0} | Time: {1} | Cache: {2}".format(endpoint, end - start, r.from_cache, ))
         print("Enpoint: {0} | Time: {1} ".format(endpoint, end - start))
